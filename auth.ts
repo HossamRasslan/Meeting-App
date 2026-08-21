@@ -1,4 +1,38 @@
 import NextAuth from 'next-auth';
 import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id';
-import {db} from './src/lib-db';
-export const {handlers,auth,signIn,signOut}=NextAuth({providers:[MicrosoftEntraID({clientId:process.env.AUTH_MICROSOFT_ENTRA_ID_ID!,clientSecret:process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET!,issuer:process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER||'https://login.microsoftonline.com/common/v2.0',authorization:{params:{scope:'openid profile email User.Read Calendars.Read offline_access'}}})],callbacks:{async signIn({user,account}){if(account?.provider==='microsoft-entra-id')await db.user.upsert({where:{email:user.email??''},update:{microsoftId:account.providerAccountId,name:user.name,image:user.image,lastLoginAt:new Date()},create:{microsoftId:account.providerAccountId,email:user.email,name:user.name,image:user.image}});return true;},async jwt({token,account}){if(account?.access_token){token.accessToken=account.access_token;token.email=token.email||account.id_token;}return token;},async session({session,token}){if(session.user?.email){const u=await db.user.findUnique({where:{email:session.user.email}});(session.user as any).id=u?.id||token.sub;} (session as any).accessToken=token.accessToken;return session;}},pages:{signIn:'/'} });
+import { db } from './src/lib-db';
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  providers: [MicrosoftEntraID({
+    clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID!,
+    clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET!,
+    issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER || 'https://login.microsoftonline.com/common/v2.0',
+    authorization: { params: { scope: 'openid profile email User.Read Calendars.Read offline_access' } },
+  })],
+  callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'microsoft-entra-id' && user.email) {
+        await db.user.upsert({
+          where: { email: user.email },
+          update: { microsoftId: account.providerAccountId, name: user.name, image: user.image, lastLoginAt: new Date() },
+          create: { microsoftId: account.providerAccountId, email: user.email, name: user.name, image: user.image, lastLoginAt: new Date() },
+        });
+      }
+      return true;
+    },
+    async jwt({ token, account, user }) {
+      if (account?.access_token) token.accessToken = account.access_token;
+      if (user?.email) token.email = user.email;
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user?.email) {
+        const dbUser = await db.user.findUnique({ where: { email: session.user.email } });
+        (session.user as typeof session.user & { id?: string }).id = dbUser?.id || token.sub;
+      }
+      (session as typeof session & { accessToken?: string }).accessToken = token.accessToken as string | undefined;
+      return session;
+    },
+  },
+  pages: { signIn: '/' },
+});
