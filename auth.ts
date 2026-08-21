@@ -30,7 +30,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user?.email) {
         const dbUser = await db.user.findUnique({ where: { email: session.user.email } });
-        (session.user as typeof session.user & { id?: string }).id = dbUser?.id || token.sub;
+        const userId = dbUser?.id ?? token.sub;
+        if (userId) {
+          (session.user as typeof session.user & { id?: string }).id = userId;
+        }
       }
       (session as typeof session & { accessToken?: string }).accessToken = token.accessToken as string | undefined;
       return session;
