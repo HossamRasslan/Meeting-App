@@ -1,0 +1,2 @@
+import {auth} from '../../../../auth';import {db} from '../../../lib-db';import {NextResponse} from 'next/server';
+export async function GET(){const s=await auth();if(!s?.user?.email)return NextResponse.json({error:'Unauthorized'},{status:401});const u=await db.user.findUnique({where:{email:s.user.email},include:{_count:{select:{meetings:true}}}});if(!u)return NextResponse.json({error:'Not found'},{status:404});return NextResponse.json({id:u.id,name:u.name,email:u.email,image:u.image,createdAt:u.createdAt,lastLoginAt:u.lastLoginAt,meetingCount:u._count.meetings});}
