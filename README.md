@@ -1,4 +1,4 @@
-# Meetly — Meeting Notes Taker
+# My Meetings
 
 Responsive meeting-notes application for desktop and mobile with Microsoft Outlook / Microsoft 365 sign-in, Microsoft Graph calendar sync, PostgreSQL persistence, and AI summarization.
 
@@ -13,3 +13,6 @@ Responsive meeting-notes application for desktop and mobile with Microsoft Outlo
 
 ## Database
 Run `npx prisma generate` and `npx prisma db push` after configuring DATABASE_URL.
+
+## Build
+The project pins Prisma 6.19.0 and runs `prisma generate` before `next build` to ensure PrismaClient is generated in Vercel builds.
