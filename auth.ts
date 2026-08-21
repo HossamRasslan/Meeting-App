@@ -11,11 +11,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   })],
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === 'microsoft-entra-id' && user.email) {
+      const email = user.email;
+      if (account?.provider === 'microsoft-entra-id') {
+        if (!email) return false;
         await db.user.upsert({
-          where: { email: user.email },
+          where: { email },
           update: { microsoftId: account.providerAccountId, name: user.name, image: user.image, lastLoginAt: new Date() },
-          create: { microsoftId: account.providerAccountId, email: user.email, name: user.name, image: user.image, lastLoginAt: new Date() },
+          create: { microsoftId: account.providerAccountId, email, name: user.name, image: user.image, lastLoginAt: new Date() },
         });
       }
       return true;
